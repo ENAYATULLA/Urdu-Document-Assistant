@@ -13,18 +13,29 @@ python-dotenv
 python-jose[cryptography]
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
+
 redis
 celery
 
 python-multipart
 
-openai
+requests
 
 opencv-python
 pillow
 pytesseract
 
+easyocr
+torch
+torchvision
+numpy
+
 pytest
 httpx
 
 email-validator
+easyocr
+pdf2image
+pymupdf
+numpy
+opencv-python-headless

@@ -62,6 +62,11 @@ class Document(Base):
         nullable=True
     )
 
+    summary = Column(
+        Text,
+        nullable=True
+    )
+
     error_message = Column(
         Text,
         nullable=True

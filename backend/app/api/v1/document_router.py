@@ -25,6 +25,11 @@ from app.schemas.document import (
     OCRResultResponse
 )
 
+from app.schemas.chat import (
+    ChatRequest,
+    ChatResponse
+)
+
 from app.services.file_validation import (
     validate_file_type,
     validate_file_size
@@ -36,8 +41,10 @@ from app.services.document_service import (
     get_document_by_id,
     delete_document,
     process_document_ocr,
-    get_ocr_result,
-    translate_document
+    translate_document,
+    summarize_document,
+    chat_with_document,
+    get_ocr_result
 )
 
 router = APIRouter(
@@ -47,7 +54,10 @@ router = APIRouter(
 
 UPLOAD_DIR = "uploads"
 
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(
+    UPLOAD_DIR,
+    exist_ok=True
+)
 
 
 @router.post("/upload")
@@ -102,6 +112,7 @@ def list_documents(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+
     return get_user_documents(
         db,
         current_user.id
@@ -162,7 +173,9 @@ def download_document(
             detail="Access denied"
         )
 
-    if not os.path.exists(document.file_path):
+    if not os.path.exists(
+        document.file_path
+    ):
         raise HTTPException(
             status_code=404,
             detail="File not found on disk"
@@ -200,7 +213,9 @@ def remove_document(
         )
 
     if os.path.exists(document.file_path):
-        os.remove(document.file_path)
+        os.remove(
+            document.file_path
+        )
 
     delete_document(
         db,
@@ -246,6 +261,7 @@ def process_document(
         "document_id": document.id,
         "status": document.status
     }
+
 
 @router.post("/{document_id}/translate")
 def translate_document_endpoint(
@@ -297,6 +313,110 @@ def translate_document_endpoint(
             status_code=500,
             detail=str(e)
         )
+    
+@router.post("/{document_id}/summary")
+def summarize_document_endpoint(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+
+    document = get_document_by_id(
+        db,
+        document_id
+    )
+
+    if not document:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
+
+    if document.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied"
+        )
+
+    try:
+
+        document = summarize_document(
+            db,
+            document
+        )
+
+        return {
+            "message": "Summary generated successfully",
+            "document_id": document.id,
+            "status": document.status,
+            "summary": document.summary
+        }
+
+    except ValueError as e:
+
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+
+@router.post(
+    "/{document_id}/chat",
+    response_model=ChatResponse
+)
+def chat_with_document_endpoint(
+    document_id: int,
+    request: ChatRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+
+    document = get_document_by_id(
+        db,
+        document_id
+    )
+
+    if not document:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
+
+    if document.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied"
+        )
+
+    try:
+
+        return chat_with_document(
+            db=db,
+            document=document,
+            question=request.question
+        )
+
+    except ValueError as e:
+
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
 
 @router.get(
     "/{document_id}/ocr",
@@ -324,6 +444,8 @@ def get_document_ocr(
             status_code=403,
             detail="Access denied"
         )
+
+    db.refresh(document)
 
     return get_ocr_result(
         document

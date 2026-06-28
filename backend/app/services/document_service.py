@@ -7,6 +7,12 @@ from app.services.ocr_service import extract_text
 from app.services.translation_service import (
     translate_urdu_to_english
 )
+from app.services.summary_service import (
+    generate_summary
+)
+from app.services.chat_service import (
+    ask_document
+)
 
 
 def create_document(
@@ -81,6 +87,7 @@ def process_document_ocr(
 
     return document
 
+
 def translate_document(
     db: Session,
     document: Document
@@ -109,6 +116,57 @@ def translate_document(
     db.refresh(document)
 
     return document
+
+
+def summarize_document(
+    db: Session,
+    document: Document
+):
+
+    if not document.translated_text:
+        raise ValueError(
+            "Translation must be completed first"
+        )
+
+    summary = generate_summary(
+        document.translated_text
+    )
+
+    document.summary = summary
+
+    document.status = (
+        "summarized"
+    )
+
+    db.commit()
+    db.refresh(document)
+
+    return document
+
+
+def chat_with_document(
+    db: Session,
+    document: Document,
+    question: str
+):
+
+    if not document.translated_text:
+        raise ValueError(
+            "Translation must be completed first"
+        )
+
+    answer = ask_document(
+        document.translated_text,
+        question
+    )
+
+    return {
+        "document_id": document.id,
+        "question": question,
+        "answer": answer
+    }
+
+
 def get_ocr_result(
     document: Document
 ):
@@ -118,5 +176,6 @@ def get_ocr_result(
         "status": document.status,
         "ocr_text": document.ocr_text,
         "translated_text": document.translated_text,
+        "summary": document.summary,
         "error_message": document.error_message
     }

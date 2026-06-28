@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -17,6 +18,11 @@ class DocumentResponse(BaseModel):
 class OCRResultResponse(BaseModel):
     document_id: int
     status: str
+
     ocr_text: str | None = None
+
     translated_text: str | None = None
+
+    summary: str | None = None
+
     error_message: str | None = None

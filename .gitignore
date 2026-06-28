@@ -19,3 +19,9 @@ coverage/
 
 .idea/
 .vscode/
+
+*.pyc
+*.pyo
+*.pyd
+Thumbs.db
+.DS_Store
