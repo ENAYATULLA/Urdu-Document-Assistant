@@ -25,3 +25,4 @@ coverage/
 *.pyd
 Thumbs.db
 .DS_Store
+*.mp4
